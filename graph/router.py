@@ -23,21 +23,10 @@ def get_router_llm() -> ChatOpenAI:
     global _router_llm
 
     if _router_llm is None:
-
-        api_key = os.environ.get(
-            "OPENROUTER_API_KEY"
-        )
-
-        if not api_key:
-            raise ValueError(
-                "OPENROUTER_API_KEY is missing. "
-                "Add it to your .env file."
-            )
-
         _router_llm = ChatOpenAI(
-            model=ROUTER_MODEL,
+            model="dots-studio/dots-3-note-preview:free",
             base_url=OPENROUTER_BASE_URL,
-            api_key=api_key,
+            api_key=os.environ["OPENROUTER_API_KEY"],
             temperature=0,
         )
 
@@ -84,6 +73,20 @@ Important:
 - Specific static URL -> scrape
 - Internal knowledge -> rag
 - Everything else -> search
+
+Examples:
+
+"What faction was Tris born into?" → rag
+"Who is Four?" → rag
+"What happened at the Choosing Ceremony?" → rag
+"Who are the five factions?" → rag
+"What happened in Chapter 20?" → rag
+
+"What is the weather today?" → search
+"What happened in the news today?" → search
+
+"Open https://example.com and tell me what's there" → scrape
+"Analyze this JavaScript dashboard: https://example.com" → playwright
 
 Query:
 {expanded_query}
