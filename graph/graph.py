@@ -9,40 +9,109 @@ from graph.nodes import (
     scrape_node,
     search_node,
 )
+
 from graph.state import AgentState
 
 
 def build_graph():
-    graph = StateGraph(AgentState)
 
-    graph.add_node("rephrase", rephrase_node)
-    graph.add_node("router", router_node)
-    graph.add_node("playwright", playwright_node)
-    graph.add_node("scrape", scrape_node)
-    graph.add_node("search", search_node)
-    graph.add_node("rag", rag_node)
-    graph.add_node("answer", answer_node)
+    graph = StateGraph(
+        AgentState
+    )
 
-    graph.set_entry_point("rephrase")
-    graph.add_edge("rephrase", "router")
+    # Nodes
+    graph.add_node(
+        "rephrase",
+        rephrase_node,
+    )
 
+    graph.add_node(
+        "router",
+        router_node,
+    )
+
+    graph.add_node(
+        "playwright",
+        playwright_node,
+    )
+
+    graph.add_node(
+        "scrape",
+        scrape_node,
+    )
+
+    graph.add_node(
+        "search",
+        search_node,
+    )
+
+    graph.add_node(
+        "rag",
+        rag_node,
+    )
+
+    graph.add_node(
+        "answer",
+        answer_node,
+    )
+
+    # Entry
+    graph.set_entry_point(
+        "rephrase"
+    )
+
+    # Rephrase -> Router
+    graph.add_edge(
+        "rephrase",
+        "router",
+    )
+
+    # Router -> Tool
     graph.add_conditional_edges(
         "router",
         lambda state: state["route"],
         {
-            "playwright": "playwright",
-            "scrape": "scrape",
-            "search": "search",
-            "rag": "rag",
+            "playwright":
+                "playwright",
+
+            "scrape":
+                "scrape",
+
+            "search":
+                "search",
+
+            "rag":
+                "rag",
         },
     )
 
-    # Every tool converges straight into the answering LLM — no cycling back
-    # into retrieval.
-    for tool in ["playwright", "scrape", "search", "rag"]:
-        graph.add_edge(tool, "answer")
+    # Tool -> Answer
+    graph.add_edge(
+        "playwright",
+        "answer",
+    )
 
-    graph.add_edge("answer", END)
+    graph.add_edge(
+        "scrape",
+        "answer",
+    )
+
+    graph.add_edge(
+        "search",
+        "answer",
+    )
+
+    graph.add_edge(
+        "rag",
+        "answer",
+    )
+
+    # Answer -> END
+    graph.add_edge(
+        "answer",
+        END,
+    )
+
     return graph.compile()
 
 

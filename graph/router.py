@@ -2,8 +2,19 @@ import os
 
 from langchain_openai import ChatOpenAI
 
+
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-VALID_ROUTES = {"playwright", "scrape", "search", "rag"}
+
+# OpenRouter automatically selects an available free model.
+ROUTER_MODEL = "openrouter/free"
+
+VALID_ROUTES = {
+    "playwright",
+    "scrape",
+    "search",
+    "rag",
+}
+
 
 _router_llm = None
 
@@ -12,10 +23,21 @@ def get_router_llm() -> ChatOpenAI:
     global _router_llm
 
     if _router_llm is None:
+
+        api_key = os.environ.get(
+            "OPENROUTER_API_KEY"
+        )
+
+        if not api_key:
+            raise ValueError(
+                "OPENROUTER_API_KEY is missing. "
+                "Add it to your .env file."
+            )
+
         _router_llm = ChatOpenAI(
-            model="dots-studio/dots-3-note-preview:free",
+            model=ROUTER_MODEL,
             base_url=OPENROUTER_BASE_URL,
-            api_key=os.environ["OPENROUTER_API_KEY"],
+            api_key=api_key,
             temperature=0,
         )
 
@@ -23,27 +45,66 @@ def get_router_llm() -> ChatOpenAI:
 
 
 def decide_route(expanded_query: str) -> str:
-    """Ask the router model for exactly one route word and validate it.
 
-    Free models on OpenRouter don't all support reliable function calling,
-    so this asks for plain text instead of structured output and falls back
-    to "search" if the reply doesn't clearly match one of the four routes.
-    """
     llm = get_router_llm()
-    prompt = (
-        "Choose exactly one tool for this query. Reply with ONLY one word, "
-        "nothing else: playwright, scrape, search, or rag.\n\n"
-        "playwright = the query names a specific URL that is JS-heavy and "
-        "needs a rendered browser (SPA, dashboard, infinite scroll).\n"
-        "scrape = the query names a specific URL that is likely static HTML.\n"
-        "search = a general or current-events question with no specific URL.\n"
-        "rag = a question about internal knowledge already stored in Qdrant.\n\n"
-        f"Query: {expanded_query}"
-    )
-    result = llm.invoke(prompt)
-    reply = (result.content or "").strip().lower()
 
-    for candidate in VALID_ROUTES:
-        if candidate in reply:
-            return candidate
+    prompt = f"""
+You are the routing component of an agentic RAG system.
+
+Choose exactly ONE route.
+
+Your response MUST be exactly one of:
+
+playwright
+scrape
+search
+rag
+
+Definitions:
+
+playwright:
+The user provided a specific URL and the page likely requires
+JavaScript rendering, such as an SPA, dashboard, dynamically
+loaded page, or infinite scrolling page.
+
+scrape:
+The user provided a specific URL and the page is likely
+normal/static HTML.
+
+search:
+The user asks a general question, current question, news question,
+or internet-related question without a specific URL.
+
+rag:
+The user asks about information stored in the internal Qdrant
+knowledge base.
+
+Important:
+- Specific JavaScript-heavy URL -> playwright
+- Specific static URL -> scrape
+- Internal knowledge -> rag
+- Everything else -> search
+
+Query:
+{expanded_query}
+
+Reply with ONLY one route word.
+"""
+
+    result = llm.invoke(prompt)
+
+    reply = (
+        result.content or ""
+    ).strip().lower()
+
+    # Exact match
+    if reply in VALID_ROUTES:
+        return reply
+
+    # Fallback if model says something like:
+    # "The correct route is search"
+    for route in VALID_ROUTES:
+        if route in reply:
+            return route
+
     return "search"
