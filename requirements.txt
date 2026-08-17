@@ -1,0 +1,14 @@
+streamlit>=1.38
+langgraph>=0.2
+langchain>=0.3
+langchain-openai>=0.2
+langchain-qdrant>=0.1
+qdrant-client>=1.11
+tavily-python>=0.5
+beautifulsoup4>=4.12
+requests>=2.32
+playwright>=1.47
+python-dotenv>=1.0
+pydantic>=2.9
+langchain-huggingface>=0.1
+sentence-transformers>=3.0
