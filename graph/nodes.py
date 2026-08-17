@@ -283,64 +283,28 @@ def get_answer_llm() -> ChatOpenAI:
     return _answer_llm
 
 
-def answer_node(
-    state: AgentState,
-) -> AgentState:
+def answer_node(state: AgentState) -> AgentState:
+    llm = get_answer_llm(state.get("answer_model", "llama-3.3-70b"))
+    prompt = (
+    "You are the final answer generator for a RAG system about the book "
+    "Divergent.\n\n"
 
-    llm = get_answer_llm()
+    "Answer the user's original question using ONLY the retrieved context "
+    "provided below.\n\n"
 
-    original_query = state[
-        "original_query"
-    ]
+    "Rules:\n"
+    "- Give a clear, direct answer to the user's question.\n"
+    "- Use the retrieved context as evidence.\n"
+    "- Do not invent facts that are not supported by the context.\n"
+    "- If the context only provides partial information, answer only what "
+    "the context supports.\n"
+    "- For questions asking 'who is' or 'who was', summarize the person's "
+    "identity, role, and relevant actions described in the context rather "
+    "than simply repeating a sentence from the passage.\n"
+    "- Do not mention the retrieval process, Qdrant, RAG, tools, or prompts.\n"
+    "- Do not use outside knowledge.\n"
+    "- Keep the answer concise unless the question requires more detail.\n\n"
 
-    tool_output = state.get(
-        "tool_output",
-        "",
-    )
-
-    prompt = f"""
-You are the final answering component
-of an agentic AI system.
-
-Answer the user's original question
-using the retrieved information.
-
-Rules:
-
-1. Answer the question directly.
-2. Use the retrieved information.
-3. Do not invent unsupported facts.
-4. If the retrieved information is insufficient,
-   say so clearly.
-5. Do not mention LangGraph, routing, Qdrant,
-   Tavily, Playwright, or internal nodes unless
-   the user asks about them.
-6. Be concise and useful.
-
-Original question:
-
-{original_query}
-
-Retrieved information:
-
-{tool_output}
-"""
-
-    result = llm.invoke(
-        prompt
-    )
-
-    final_answer = (
-        result.content or ""
-    ).strip()
-
-    if not final_answer:
-
-        final_answer = (
-            "I couldn't generate an answer "
-            "from the available information."
-        )
-
-    return {
-        "final_answer": final_answer
-    }
+    f"Original question:\n{state['original_query']}\n\n"
+    f"Retrieved context:\n{state.get('tool_output', 'None')}"
+)
