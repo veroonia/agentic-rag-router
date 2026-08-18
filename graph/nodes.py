@@ -15,12 +15,12 @@ from tools.web_scraper import scrape_static
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 ANSWER_MODEL_MAP = {
-    "llama-3.3-70b": "dots-studio/dots-3-note-preview:free",
-    "gpt-oss-120b": "dots-studio/dots-3-note-preview:free",
+    "nemotron-3.5-lightning": "nvidia/nemotron-3.5-lightning:free",
+    "dots-3-note-preview": "dots-studio/dots-3-note-preview:free",
 }
 
 # Automatically choose an available free OpenRouter model.
-MODEL = "openrouter/free"
+MODEL = "nvidia/nemotron-3.5-lightning:free"
 
 
 URL_RE = re.compile(
@@ -275,7 +275,7 @@ _answer_llm = None
 def get_answer_llm(model_choice: str) -> ChatOpenAI:
     model_id = ANSWER_MODEL_MAP.get(
         model_choice,
-        ANSWER_MODEL_MAP["llama-3.3-70b"]
+        ANSWER_MODEL_MAP["nemotron-3.5-lightning"],
     )
 
     return ChatOpenAI(
@@ -288,7 +288,7 @@ def get_answer_llm(model_choice: str) -> ChatOpenAI:
 
 def answer_node(state: AgentState) -> AgentState:
     llm = get_answer_llm(
-        state.get("answer_model", "llama-3.3-70b")
+        state.get("answer_model", "nemotron-3.5-lightning")
     )
     prompt = (
     "You are the final answer generator for a RAG system about the book "

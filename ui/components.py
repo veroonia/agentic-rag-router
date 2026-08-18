@@ -35,7 +35,7 @@ def render_message_actions() -> str:
 
 
 def render_wordmark() -> str:
-    return '<div class="wordmark"><span class="bolt">✨</span>Divergent <span class="accent">Agent</span></div>'
+    return '<div class="wordmark">Divergent <span class="accent">Agent</span></div>'
 
 
 def render_hero() -> str:

@@ -3,21 +3,16 @@ from typing import Literal, TypedDict
 
 RouteType = Literal["playwright", "scrape", "search", "rag"]
 
+AnswerModel = Literal[
+    "nemotron-3.5-lightning",
+    "dots-3-note-preview",
+]
+
 
 class AgentState(TypedDict, total=False):
-    """Shared state passed between every node in the LangGraph agent."""
-
-    # User input
     original_query: str
-
-    # LLM #1 output
     expanded_query: str
-
-    # Router output
     route: RouteType
-
-    # Tool output
     tool_output: str
-
-    # Final LLM output
     final_answer: str
+    answer_model: AnswerModel

@@ -30,7 +30,6 @@ load_dotenv()
 
 st.set_page_config(
     page_title="Divergent Agent",
-    page_icon="✨",
     layout="centered",
 )
 
@@ -63,6 +62,19 @@ with open(
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "answer_model" not in st.session_state:
+    st.session_state.answer_model = "nemotron-3.5-lightning"
+
+model_labels = {
+    "nemotron-3.5-lightning": (
+        "Nemotron 3.5 Lightning",
+        "Fast NVIDIA model optimized for efficient agentic workloads",
+    ),
+    "dots-3-note-preview": (
+        "Dots 3 Note Preview",
+        "Lightweight free model for fast responses",
+    ),
+}
 
 # -------------------------------------------------------------------
 # Header
@@ -82,15 +94,41 @@ with top_col1:
 
 
 with top_col2:
+    current_model = st.session_state.answer_model
+    current_label = model_labels[current_model][0]
 
-    st.markdown(
-        """
-        <div style="text-align:right;">
-            <small>Agentic RAG • LangGraph</small>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    with st.popover(
+        f"✨ {current_label}",
+        use_container_width=True,
+    ):
+        st.markdown(
+            '<div class="model-picker-title">Answering model</div>',
+            unsafe_allow_html=True,
+        )
+
+        for model_id, (name, description) in model_labels.items():
+
+            is_selected = (
+                st.session_state.answer_model == model_id
+            )
+
+            if st.button(
+                f"{name}{'  ✓' if is_selected else ''}",
+                key=f"model_option_{model_id}",
+                use_container_width=True,
+            ):
+                st.session_state.answer_model = model_id
+                st.rerun()
+
+            st.markdown(
+                f'<div class="model-option-description">{description}</div>',
+                unsafe_allow_html=True,
+            )
+
+        st.markdown(
+            '<div class="model-picker-divider"></div>',
+            unsafe_allow_html=True,
+        )
 
 
 # -------------------------------------------------------------------
@@ -211,6 +249,7 @@ if query:
             result = app_graph.invoke(
                 {
                     "original_query": query,
+                    "answer_model": st.session_state.answer_model,
                 }
             )
 
@@ -276,6 +315,6 @@ if query:
                     )
                     or ""
                 )[:1000],
-                "llm": "openrouter/free",
+                "llm": st.session_state.answer_model,
             }
         )
