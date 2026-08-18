@@ -266,10 +266,10 @@ if query:
             )
 
             result = {
-                "expanded_query": "",
-                "route": "",
-                "tool_output": "",
-            }
+            "expanded_query": "",
+            "routes": [],
+            "tool_output": [],
+        }
 
     # ---------------------------------------------------------------
     # Display answer
@@ -306,14 +306,13 @@ if query:
                 "expanded_query": result.get(
                     "expanded_query"
                 ),
-                "route": result.get(
-                    "route"
+                "routes": result.get(
+                    "routes"
                 ),
                 "tool_output_preview": (
-                    result.get(
-                        "tool_output"
+                    "\n\n---\n\n".join(
+                        result.get("tool_output") or []
                     )
-                    or ""
                 )[:1000],
                 "llm": st.session_state.answer_model,
             }

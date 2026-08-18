@@ -69,17 +69,14 @@ def build_graph():
     # Router -> Tool
     graph.add_conditional_edges(
         "router",
-        lambda state: state["route"],
+        lambda state: state["routes"],
         {
             "playwright":
                 "playwright",
-
             "scrape":
                 "scrape",
-
             "search":
                 "search",
-
             "rag":
                 "rag",
         },

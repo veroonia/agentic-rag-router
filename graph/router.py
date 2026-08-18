@@ -33,21 +33,20 @@ def get_router_llm() -> ChatOpenAI:
     return _router_llm
 
 
-def decide_route(expanded_query: str) -> str:
+def decide_route(expanded_query: str) -> list[str]:
 
     llm = get_router_llm()
 
     prompt = f"""
 You are the routing component of an agentic RAG system.
 
-Choose exactly ONE route.
+Choose ALL routes that apply to this query. A single query can require
+more than one tool if it asks about more than one thing.
 
-Your response MUST be exactly one of:
+Valid routes: playwright, scrape, search, rag
 
-playwright
-scrape
-search
-rag
+Reply with a comma-separated list of the routes that apply, e.g.:
+scrape,rag
 
 Definitions:
 
@@ -73,25 +72,24 @@ Important:
 - Specific static URL -> scrape
 - Internal knowledge -> rag
 - Everything else -> search
+- playwright and scrape are mutually exclusive for the SAME url — never
+  pick both for one link.
+- If the query has multiple distinct parts (e.g. a URL AND a question
+  about internal knowledge), include a route for each part.
 
 Examples:
 
 "What faction was Tris born into?" → rag
-"Who is Four?" → rag
-"What happened at the Choosing Ceremony?" → rag
-"Who are the five factions?" → rag
-"What happened in Chapter 20?" → rag
-
 "What is the weather today?" → search
-"What happened in the news today?" → search
-
 "Open https://example.com and tell me what's there" → scrape
 "Analyze this JavaScript dashboard: https://example.com" → playwright
+"Check https://example.com and tell me who Tris is" → scrape,rag
+"Summarize this SPA https://example.com and search the latest news about it" → playwright,search
 
 Query:
 {expanded_query}
 
-Reply with ONLY one route word.
+Reply with ONLY the comma-separated route list.
 """
 
     result = llm.invoke(prompt)
@@ -100,14 +98,10 @@ Reply with ONLY one route word.
         result.content or ""
     ).strip().lower()
 
-    # Exact match
-    if reply in VALID_ROUTES:
-        return reply
+    routes = [
+        r.strip()
+        for r in reply.split(",")
+        if r.strip() in VALID_ROUTES
+    ]
 
-    # Fallback if model says something like:
-    # "The correct route is search"
-    for route in VALID_ROUTES:
-        if route in reply:
-            return route
-
-    return "search"
+    return routes or ["search"]

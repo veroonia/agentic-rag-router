@@ -146,12 +146,12 @@ def router_node(
     state: AgentState,
 ) -> AgentState:
 
-    route = decide_route(
+    routes = decide_route(
         state["expanded_query"]
     )
 
     return {
-        "route": route
+        "routes": routes
     }
 
 
@@ -159,110 +159,40 @@ def router_node(
 # PLAYWRIGHT
 # ============================================================
 
-def playwright_node(
-    state: AgentState,
-) -> AgentState:
-
-    url = (
-        extract_url(
-            state.get(
-                "expanded_query",
-                ""
-            )
-        )
-        or
-        extract_url(
-            state.get(
-                "original_query",
-                ""
-            )
-        )
-    )
-
+def playwright_node(state: AgentState) -> AgentState:
+    url = extract_url(state.get("expanded_query", "")) or extract_url(state.get("original_query", ""))
     if not url:
+        return {"tool_output": ["[Web page]\nNo URL was found for Playwright."]}
+    return {"tool_output": [f"[Web page: {url}]\n{scrape_dynamic(url)}"]}
 
-        return {
-            "tool_output":
-                "No URL was found for Playwright."
-        }
-
-    return {
-        "tool_output":
-            scrape_dynamic(url)
-    }
 
 
 # ============================================================
 # STATIC SCRAPER
 # ============================================================
 
-def scrape_node(
-    state: AgentState,
-) -> AgentState:
-
-    url = (
-        extract_url(
-            state.get(
-                "expanded_query",
-                ""
-            )
-        )
-        or
-        extract_url(
-            state.get(
-                "original_query",
-                ""
-            )
-        )
-    )
-
+def scrape_node(state: AgentState) -> AgentState:
+    url = extract_url(state.get("expanded_query", "")) or extract_url(state.get("original_query", ""))
     if not url:
+        return {"tool_output": ["[Web page]\nNo URL was found for scraping."]}
+    return {"tool_output": [f"[Web page: {url}]\n{scrape_static(url)}"]}
 
-        return {
-            "tool_output":
-                "No URL was found for scraping."
-        }
-
-    return {
-        "tool_output":
-            scrape_static(url)
-    }
 
 
 # ============================================================
 # TAVILY SEARCH
 # ============================================================
 
-def search_node(
-    state: AgentState,
-) -> AgentState:
-
-    return {
-        "tool_output":
-            tavily_search(
-                state[
-                    "expanded_query"
-                ]
-            )
-    }
+def search_node(state: AgentState) -> AgentState:
+    return {"tool_output": [f"[Web search]\n{tavily_search(state['expanded_query'])}"]}
 
 
 # ============================================================
 # QDRANT RAG
 # ============================================================
 
-def rag_node(
-    state: AgentState,
-) -> AgentState:
-
-    return {
-        "tool_output":
-            rag_retrieve(
-                state[
-                    "expanded_query"
-                ]
-            )
-    }
+def rag_node(state: AgentState) -> AgentState:
+    return {"tool_output": [f"[Divergent book excerpt]\n{rag_retrieve(state['expanded_query'])}"]}
 
 
 # ============================================================
@@ -287,32 +217,42 @@ def get_answer_llm(model_choice: str) -> ChatOpenAI:
 
 
 def answer_node(state: AgentState) -> AgentState:
-    llm = get_answer_llm(
-        state.get("answer_model", "nemotron-3.5-lightning")
-    )
+    llm = get_answer_llm(state.get("answer_model", "nemotron-3.5-lightning"))
+    combined_context = "\n\n---\n\n".join(state.get("tool_output", []))
     prompt = (
-    "You are the final answer generator for a RAG system about the book "
-    "Divergent.\n\n"
+    "You are the final answer generator for an agentic assistant that can "
+    "answer questions about the book Divergent and also look up web pages "
+    "or run web searches.\n\n"
 
     "Answer the user's original question using ONLY the retrieved context "
-    "provided below.\n\n"
+    "provided below. The context is labeled by source, e.g. "
+    "[Web page: url], [Web search], [Divergent book excerpt].\n\n"
 
     "Rules:\n"
-    "- Give a clear, direct answer to the user's question.\n"
+    "- If the question has multiple parts covered by different sources, "
+    "answer each part under its own short heading (e.g. '**From the "
+    "webpage:**', '**About Tris:**') so the user can tell which answer "
+    "came from which source.\n"
+    "- Give a clear, direct answer to each part of the question.\n"
     "- Use the retrieved context as evidence.\n"
     "- Do not invent facts that are not supported by the context.\n"
+    "- If a source's context is empty, missing, or clearly insufficient "
+    "(e.g. only a page title/description with no real content), say so "
+    "plainly instead of guessing — e.g. 'I wasn't able to retrieve the "
+    "full content of this page.'\n"
     "- If the context only provides partial information, answer only what "
     "the context supports.\n"
     "- For questions asking 'who is' or 'who was', summarize the person's "
     "identity, role, and relevant actions described in the context rather "
     "than simply repeating a sentence from the passage.\n"
-    "- Do not mention the retrieval process, Qdrant, RAG, tools, or prompts.\n"
+    "- Do not mention retrieval mechanics, Qdrant, RAG, tools, prompts, or "
+    "internal source labels like '[Web page: url]' verbatim — refer to "
+    "them naturally instead (e.g. 'the article', 'the book').\n"
     "- Do not use outside knowledge.\n"
     "- Keep the answer concise unless the question requires more detail.\n\n"
 
     f"Original question:\n{state['original_query']}\n\n"
-    f"Retrieved context:\n{state.get('tool_output', 'None')}"
+    f"Retrieved context:\n{combined_context}"
 )
     result = llm.invoke(prompt)
-
     return {"final_answer": result.content}

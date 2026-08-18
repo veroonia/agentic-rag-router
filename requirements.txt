@@ -12,3 +12,4 @@ python-dotenv>=1.0
 pydantic>=2.9
 langchain-huggingface>=0.1
 sentence-transformers>=3.0
+trafilatura
