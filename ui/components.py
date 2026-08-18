@@ -42,9 +42,7 @@ def render_hero() -> str:
     return (
         """
         <div class="hero">
-            <div class="eyebrow">✨ Divergent Agent · LangGraph + Qdrant + Tavily</div>
             <h1>Ask at the <span class="accent">speed</span><br>of thought</h1>
-            <p>Rephrases your question, routes it to search, RAG, or a scraper, then answers.</p>
         </div>
         """.strip()
     )

@@ -14,6 +14,11 @@ from tools.web_scraper import scrape_static
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
+ANSWER_MODEL_MAP = {
+    "llama-3.3-70b": "dots-studio/dots-3-note-preview:free",
+    "gpt-oss-120b": "dots-studio/dots-3-note-preview:free",
+}
+
 # Automatically choose an available free OpenRouter model.
 MODEL = "openrouter/free"
 
@@ -267,24 +272,24 @@ def rag_node(
 _answer_llm = None
 
 
-def get_answer_llm() -> ChatOpenAI:
+def get_answer_llm(model_choice: str) -> ChatOpenAI:
+    model_id = ANSWER_MODEL_MAP.get(
+        model_choice,
+        ANSWER_MODEL_MAP["llama-3.3-70b"]
+    )
 
-    global _answer_llm
-
-    if _answer_llm is None:
-
-        _answer_llm = ChatOpenAI(
-            model=MODEL,
-            base_url=OPENROUTER_BASE_URL,
-            api_key=get_api_key(),
-            temperature=0.3,
-        )
-
-    return _answer_llm
+    return ChatOpenAI(
+        model=model_id,
+        base_url=OPENROUTER_BASE_URL,
+        api_key=os.environ["OPENROUTER_API_KEY"],
+        temperature=0.3,
+    )
 
 
 def answer_node(state: AgentState) -> AgentState:
-    llm = get_answer_llm(state.get("answer_model", "llama-3.3-70b"))
+    llm = get_answer_llm(
+        state.get("answer_model", "llama-3.3-70b")
+    )
     prompt = (
     "You are the final answer generator for a RAG system about the book "
     "Divergent.\n\n"
@@ -308,3 +313,6 @@ def answer_node(state: AgentState) -> AgentState:
     f"Original question:\n{state['original_query']}\n\n"
     f"Retrieved context:\n{state.get('tool_output', 'None')}"
 )
+    result = llm.invoke(prompt)
+
+    return {"final_answer": result.content}
