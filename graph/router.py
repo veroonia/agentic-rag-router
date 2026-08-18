@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 # OpenRouter automatically selects an available free model.
-ROUTER_MODEL = "openrouter/free"
+ROUTER_MODEL = "nvidia/nemotron-3.5-lightning:free"
 
 VALID_ROUTES = {
     "playwright",

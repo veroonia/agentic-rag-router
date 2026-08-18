@@ -16,6 +16,8 @@ from ui.components import (
     render_wordmark,
 )
 
+from chat_history import clear_history, load_history, save_history
+
 
 # -------------------------------------------------------------------
 # Environment
@@ -60,7 +62,7 @@ with open(
 # -------------------------------------------------------------------
 
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = load_history()
 
 if "answer_model" not in st.session_state:
     st.session_state.answer_model = "nemotron-3.5-lightning"
@@ -80,8 +82,8 @@ model_labels = {
 # Header
 # -------------------------------------------------------------------
 
-top_col1, top_col2 = st.columns(
-    [3, 2]
+top_col1, top_col2, top_col3 = st.columns(
+    [3, 2, 1]
 )
 
 
@@ -129,6 +131,12 @@ with top_col2:
             '<div class="model-picker-divider"></div>',
             unsafe_allow_html=True,
         )
+
+with top_col3:
+    if st.button("🗑️ Clear", use_container_width=True):
+        st.session_state.messages = []
+        clear_history()
+        st.rerun()
 
 
 # -------------------------------------------------------------------
@@ -227,6 +235,8 @@ if query:
             "time": now,
         }
     )
+
+    save_history(st.session_state.messages)
 
     st.markdown(
         render_user_message(
